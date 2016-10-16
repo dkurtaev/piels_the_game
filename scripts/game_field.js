@@ -11,11 +11,20 @@ function gameField(canvasId) {
   var FIELD_WIDTH = 100;
   var FIELD_HEIGHT = 100;
 
-  var canvas = document.getElementById("glcanvas");
+  if (!window.WebGLRenderingContext) {
+    window.alert("Browser not supports WebGL");
+    return;
+  }
+
+  var canvas = document.getElementById(canvasId);
   canvas.width = 2 * (FIELD_WIDTH + FIELD_HEIGHT - 1);
   canvas.height = 2 * FIELD_HEIGHT;
 
-  var gl = initWebGL(canvas);
+  var gl = canvas.getContext("webgl", {antialias: false});
+  if (!gl) {
+    window.alert("WebGL initialization failed");
+    return;
+  }
   this.gl = gl;
 
   gl.clearColor(0.0, 0.8, 0.5, 1.0);
@@ -43,23 +52,6 @@ function gameField(canvasId) {
   window.alert(err.message);
 }
 
-};
-
-function initWebGL(canvas) {
-  var gl = null;
-  try {
-    gl = canvas.getContext("webgl") ||
-         canvas.getContext("experimental-webgl");
-  } catch (err) {
-    window.alert(err.message);
-  }
-
-  if (!gl) {
-    window.alert("OpenGL context init failed.");
-    gl = null;
-  }
-
-  return gl;
 };
 
 function createShaderProgram(gl) {
