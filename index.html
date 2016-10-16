@@ -1,8 +1,19 @@
 <!DOCTYPE html>
 <html>
 
+<head>
+  <script src="scripts/game_field.js"></script>
+</head>
+
 <body>
-  Piels
+  <canvas id="glcanvas"></canvas>
+  <script>
+    try {
+      var gameField = new gameField("glcanvas");
+    } catch (err) {
+      window.alert(err.message);
+    }
+  </script>
 </body>
 
 </html>
