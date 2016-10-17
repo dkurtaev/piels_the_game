@@ -36,13 +36,18 @@ function gameField(canvasId) {
   gl.useProgram(this.shaderProgram);
 
   var vbo = gl.createBuffer();
-  var vertices = [0, FIELD_WIDTH - 1, 2 * FIELD_HEIGHT, canvas.height,
-                  2 * FIELD_HEIGHT, canvas.height - 1,
-                  canvas.width, FIELD_HEIGHT - 1,
-                  canvas.width - 2, FIELD_HEIGHT - 1,
-                  2 * (FIELD_WIDTH - 2), -1,
-                  2 * (FIELD_WIDTH - 1), 1,
-                  0, FIELD_WIDTH];
+  var vertices = [0, FIELD_WIDTH - 1, 2 * FIELD_HEIGHT, canvas.height];
+  for (var i = 1; i < FIELD_WIDTH; ++i) {
+    vertices.push(i * 2);
+    vertices.push(FIELD_WIDTH - i);
+    vertices.push(2 * FIELD_HEIGHT + i * 2 - 2);
+    vertices.push(canvas.height - i);
+
+    vertices.push(i * 2);
+    vertices.push(FIELD_WIDTH - 1 - i);
+    vertices.push(2 * FIELD_HEIGHT + i * 2);
+    vertices.push(canvas.height - i);
+  }
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
@@ -56,7 +61,7 @@ function gameField(canvasId) {
   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
   gl.vertexAttribPointer(loc_position, 2, gl.FLOAT, false, 0, 0);
   gl.enableVertexAttribArray(loc_position);
-  gl.drawArrays(gl.LINES, 0, 8);
+  gl.drawArrays(gl.LINES, 0, vertices.length / 2);
 
   gl.disableVertexAttribArray(loc_position);
 };
