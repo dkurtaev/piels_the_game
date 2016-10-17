@@ -9,8 +9,14 @@ function gameField(canvasId) {
   //   **  **
   //     **
   // Here each asterisk - colored pixel. Total width in pixels - 14, height - 7.
-  var FIELD_WIDTH = 100;
-  var FIELD_HEIGHT = 100;
+
+  // Chose field dimensions for making resulting canvas sizes as powers of 2:
+  // h = FIELD_WIDTH + FIELD_HEIGHT - 1;
+  // w = 2 * h;
+  // => FIELD_WIDTH + FIELD_HEIGHT - 1 = 2^k;
+  // (Texturing requirements.)
+  var FIELD_WIDTH = 129;
+  var FIELD_HEIGHT = 128;
 
   if (!window.WebGLRenderingContext) {
     window.alert("Browser not supports WebGL");
@@ -31,51 +37,106 @@ function gameField(canvasId) {
   gl.clearColor(1.0, 1.0, 1.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
+  // Generate texture.
+  var pixels = new Uint8Array(canvas.width * canvas.height * 3).fill(255);
+
+  var x = 0;
+  var upper_y = FIELD_WIDTH - 1, lower_y = upper_y;
+  var upper_dy = -1, lower_dy = 1;
+  for (var x = 0; x < canvas.width; x += 2) {
+    for (var y = upper_y; y <= lower_y; ++y) {
+      var offset = (y * canvas.width + x) * 3;
+      pixels[offset] = 59;
+      pixels[offset + 1] = 25;
+      pixels[offset + 2] = 19;
+      pixels[offset + 3] = 59;
+      pixels[offset + 4] = 25;
+      pixels[offset + 5] = 19;
+    }
+    if (upper_y == 0) {
+      upper_dy = 1;
+    }
+    if (lower_y == canvas.height - 1) {
+      lower_dy = -1;
+    }
+    upper_y += upper_dy;
+    lower_y += lower_dy;
+  }
+
+  var tex_id = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex_id);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, canvas.width, canvas.height, 0,
+                gl.RGB, gl.UNSIGNED_BYTE, pixels);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+
   this.shaderProgram = createShaderProgram(gl);
 
   gl.useProgram(this.shaderProgram);
 
-  var vbo = gl.createBuffer();
-  var vertices = [0, FIELD_WIDTH - 1, 2 * FIELD_HEIGHT, canvas.height];
-  for (var i = 1; i < FIELD_WIDTH; ++i) {
-    vertices.push(i * 2);
-    vertices.push(FIELD_WIDTH - i);
-    vertices.push(2 * FIELD_HEIGHT + i * 2 - 2);
-    vertices.push(canvas.height - i);
+  // Vertices position VBO.
+  var position_vbo = gl.createBuffer();
+  // Two triangles:
+  // (-1, 1)  *--------* (1, 1)
+  //          |     /  |
+  //          |  /     |
+  // (-1, -1) *--------* (1, -1)
+  // Drawing as strip.
+  var data = [-1, 1, -1, -1, 1, 1, 1, -1];
+  gl.bindBuffer(gl.ARRAY_BUFFER, position_vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-    vertices.push(i * 2);
-    vertices.push(FIELD_WIDTH - 1 - i);
-    vertices.push(2 * FIELD_HEIGHT + i * 2);
-    vertices.push(canvas.height - i);
-  }
-  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+  // Vertices texture coordinates VBO.
+  var tex_coords_vbo = gl.createBuffer();
+  data = [0, 0, 0, 1, 1, 0, 1, 1];
+  gl.bindBuffer(gl.ARRAY_BUFFER, tex_coords_vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
   var loc_position = gl.getAttribLocation(this.shaderProgram, "a_position");
-  var loc_projection =
-      gl.getUniformLocation(this.shaderProgram, "u_projection_matrix");
+  var loc_tex_coords = gl.getAttribLocation(this.shaderProgram, "a_tex_coords");
+  var loc_texture = gl.getUniformLocation(this.shaderProgram, "u_texture");
 
-  var proj_matrix = orthoM(0, canvas.width, canvas.height, 0);
-  gl.uniformMatrix4fv(loc_projection, false, new Float32Array(proj_matrix));
+  gl.enable(gl.TEXTURE_2D);
+  gl.bindTexture(gl.TEXTURE_2D, tex_id);
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.uniform1i(loc_texture, 0);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, position_vbo);
   gl.vertexAttribPointer(loc_position, 2, gl.FLOAT, false, 0, 0);
   gl.enableVertexAttribArray(loc_position);
-  gl.drawArrays(gl.LINES, 0, vertices.length / 2);
 
+  gl.bindBuffer(gl.ARRAY_BUFFER, tex_coords_vbo);
+  gl.vertexAttribPointer(loc_tex_coords, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(loc_tex_coords);
+
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  gl.disableVertexAttribArray(loc_tex_coords);
   gl.disableVertexAttribArray(loc_position);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.disable(gl.TEXTURE_2D);
+  gl.useProgram(null);
 };
 
 function createShaderProgram(gl) {
   var vertexSrc =
     "attribute vec2 a_position;" +
-    "uniform mat4 u_projection_matrix;" +
+    "attribute vec2 a_tex_coords;" +
+    "varying vec2 v_tex_coords;" +
     "void main() {" +
-      "gl_Position = u_projection_matrix * vec4(a_position, 0.0, 1.0);" +
+      "v_tex_coords = a_tex_coords;" +
+      "gl_Position = vec4(a_position, 0.0, 1.0);" +
     "}";
   var fragmentSrc =
+    "precision mediump float;" +
+    "uniform sampler2D u_texture;" +
+    "varying vec2 v_tex_coords;" +
     "void main() {" +
-      "gl_FragColor = vec4(0.23, 0.09, 0.07, 1.0);" +
+      "gl_FragColor = texture2D(u_texture, v_tex_coords);" +
     "}";
 
   var shaderProgram = gl.createProgram();
@@ -106,15 +167,4 @@ function createShader(gl, type, src) {
     window.alert("Shader compilation error: " + gl.getShaderInfoLog(shader));
   }
   return shader;
-};
-
-function orthoM(left, right, bottom, top) {
-  // near = 0, far = 1.
-  var reverted_width = 1.0 / (right - left);
-  var reverted_height = 1.0 / (top - bottom);
-  return [2 * reverted_width, 0, 0, 0,
-          0, 2 * reverted_height, 0, 0,
-          0, 0, -2, 0,
-          -(right + left) * reverted_width, -(top + bottom) * reverted_height,
-          -1, 1];
 };
