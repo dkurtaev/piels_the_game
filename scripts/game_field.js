@@ -10,13 +10,10 @@ function gameField(canvasId) {
   //     **
   // Here each asterisk - colored pixel. Total width in pixels - 14, height - 7.
 
-  // Chose field dimensions for making resulting canvas sizes as powers of 2:
-  // h = FIELD_WIDTH + FIELD_HEIGHT - 1;
-  // w = 2 * h;
-  // => FIELD_WIDTH + FIELD_HEIGHT - 1 = 2^k;
-  // (Texturing requirements.)
-  var FIELD_WIDTH = 129;
-  var FIELD_HEIGHT = 128;
+  // Chose field dimensions for making resulting canvas sizes as powers of 2
+  // (Texturing requirements).
+  var FIELD_WIDTH = 100;
+  var FIELD_HEIGHT = 100;
 
   if (!window.WebGLRenderingContext) {
     window.alert("Browser not supports WebGL");
@@ -24,8 +21,9 @@ function gameField(canvasId) {
   }
 
   var canvas = document.getElementById(canvasId);
-  canvas.height = FIELD_WIDTH + FIELD_HEIGHT - 1;
-  canvas.width = 2 * canvas.height;
+  canvas.height = Math.pow(2, Math.ceil(Math.log2(FIELD_WIDTH + FIELD_HEIGHT - 1 + 9)));
+  canvas.width = Math.pow(2, Math.ceil(Math.log2(2 * canvas.height + 2)));
+  console.log(canvas.height + " " + canvas.width);
 
   var gl = canvas.getContext("webgl", {antialias: false});
   if (!gl) {
@@ -40,7 +38,7 @@ function gameField(canvasId) {
   var x = 0;
   var upper_y = FIELD_WIDTH - 1, lower_y = upper_y;
   var upper_dy = -1, lower_dy = 1;
-  for (var x = 0; x < canvas.width; x += 2) {
+  for (var x = 1; x <= 2 * (FIELD_WIDTH + FIELD_HEIGHT - 1); x += 2) {
     // Top.
     for (var y = upper_y; y <= lower_y; ++y) {
       var offset = (y * canvas.width + x) * 3;
@@ -51,6 +49,19 @@ function gameField(canvasId) {
       pixels[offset + 4] = 25;
       pixels[offset + 5] = 19;
     }
+    // Slice.
+    var colors = [128, 68, 50, 128, 68, 50, 221, 133, 81, 253, 242, 210,
+                  253, 242, 210, 221, 133, 81, 128, 68, 50, 128, 68, 50,
+                  59, 25, 19];
+    for (var i = 0; i < colors.length / 3; ++i) {
+      for (var j = 0; j < 2; ++j) {
+        var offset = ((lower_y + 1 + i) * canvas.width + x + j) * 3;
+        pixels[offset] = colors[i * 3];
+        pixels[offset + 1] = colors[i * 3 + 1];
+        pixels[offset + 2] = colors[i * 3 + 2];
+      }
+    }
+
     if (upper_y == 0) {
       upper_dy = 1;
     }
@@ -59,6 +70,19 @@ function gameField(canvasId) {
     }
     upper_y += upper_dy;
     lower_y += lower_dy;
+  }
+  // Borders.
+  for (var i = 0; i < 8; ++i) {
+    var offset = ((FIELD_WIDTH + i) * canvas.width) * 3;
+    pixels[offset] = 59;
+    pixels[offset + 1] = 25;
+    pixels[offset + 2] = 19;
+
+    offset = ((FIELD_HEIGHT + i) * canvas.width +
+              2 * (FIELD_WIDTH + FIELD_HEIGHT - 1) + 1) * 3;
+    pixels[offset] = 59;
+    pixels[offset + 1] = 25;
+    pixels[offset + 2] = 19;
   }
 
   var tex_id = gl.createTexture();
