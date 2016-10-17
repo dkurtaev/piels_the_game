@@ -13,6 +13,28 @@
     }
   </style>
   <script src="scripts/game_field.js"></script>
+  <script src="scripts/shaders_factory.js"></script>
+
+  <!-- Shaders. -->
+  <script id="default_vert_shader" type="x-shader/x-vertex">
+    attribute vec2 a_position;
+    attribute vec2 a_tex_coords;
+    varying vec2 v_tex_coords;
+    void main() {
+      v_tex_coords = a_tex_coords;
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+  </script>
+
+  <script id="default_frag_shader" type="x-shader/x-fragment">
+    precision mediump float;
+    uniform sampler2D u_texture;
+    varying vec2 v_tex_coords;
+    void main() {
+      gl_FragColor = texture2D(u_texture, v_tex_coords);
+    }
+  </script>
+
 </head>
 
 <body>
