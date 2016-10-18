@@ -39,3 +39,18 @@ function createShader(gl, type, src) {
   }
   return shader;
 };
+
+function readTextFile(url, callback) {
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function() {
+    if (this.readyState == 4) {
+      if (this.status == 200) {
+        callback(this.responseText);
+      } else {
+        throw {message: "Failed reading " + url};
+      }
+    }
+  }
+  xhr.open("GET", url, true);
+  xhr.send();
+};

@@ -55,6 +55,17 @@ gameField.prototype.init = function(canvasId, slice_img) {
   }
   this.gl = gl;
 
+  // Shader program setup.
+  var self = this;
+  readTextFile("shaders/default_vert_shader.glsl", function(vertShader) {
+    readTextFile("shaders/default_frag_shader.glsl", function(fragShader) {
+      self.shaderProgram = createShaderProgram(gl, vertShader, fragShader);
+      self.draw(gl, canvas, slice_img, FIELD_WIDTH, FIELD_HEIGHT);
+    });
+  });
+};
+
+gameField.prototype.draw = function(gl, canvas, slice_img, FIELD_WIDTH, FIELD_HEIGHT) {
   // Generate texture.
   var heights_map = new Uint8Array(canvas.width * canvas.height).fill(0);
 
@@ -108,11 +119,6 @@ gameField.prototype.init = function(canvasId, slice_img) {
                 gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array(slice_img.data));
 
   gl.bindTexture(gl.TEXTURE_2D, null);
-
-  // Shader program setup.
-  var vertShader = document.getElementById("default_vert_shader").text;
-  var fragShader = document.getElementById("default_frag_shader").text;
-  this.shaderProgram = createShaderProgram(gl, vertShader, fragShader);
 
   var loc_heights = gl.getUniformLocation(this.shaderProgram, "u_heights_map");
   var loc_slice_tex = gl.getUniformLocation(this.shaderProgram, "u_slice_tex");
