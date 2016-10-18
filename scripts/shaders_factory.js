@@ -17,8 +17,9 @@ function createShaderProgram(gl, vertShaderSource, fragShaderSource) {
 
   gl.linkProgram(shaderProgram);
   if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    window.alert("Program linking error: " +
-                 gl.getProgramInfoLog(shaderProgram));
+    throw {
+      message: "Program linking error: " + gl.getProgramInfoLog(shaderProgram)
+    };
   }
 
   gl.deleteShader(vertexShader);
@@ -32,7 +33,9 @@ function createShader(gl, type, src) {
   gl.shaderSource(shader, src);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    window.alert("Shader compilation error: " + gl.getShaderInfoLog(shader));
+    throw {
+      message: "Shader compilation error: " + gl.getShaderInfoLog(shader)
+    };
   }
   return shader;
 };
