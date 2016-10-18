@@ -1,30 +1,13 @@
 function gameField(canvasId) {
-  var slice_img = {
-    width: 16,
-    height: 1,
-    data: [
-      255, 255, 255,
-      59, 25, 19,
-      128, 68, 50,
-      128, 68, 50,
-      128, 68, 50,
-      221, 133, 81,
-      221, 133, 81,
-      253, 242, 210,
-      253, 242, 210,
-      253, 242, 210,
-      221, 133, 81,
-      221, 133, 81,
-      128, 68, 50,
-      128, 68, 50,
-      128, 68, 50,
-      59, 25, 19
-    ]
-  };
-  this.init(canvasId, slice_img);
+  this.width = 100;
+  this.height = 100;
+  this.shaderProgram = null;
+  this.slice_img = null;
+
+  this.init(canvasId);
 };
 
-gameField.prototype.init = function(canvasId, slice_img) {
+gameField.prototype.init = function(canvasId) {
   // Game field dimensions in isometric points.
   // Field example with width 5 and height 3:
   //         **
@@ -35,42 +18,56 @@ gameField.prototype.init = function(canvasId, slice_img) {
   //   **  **
   //     **
   // Here each asterisk - colored pixel. Total width in pixels - 14, height - 7.
-
-  // Chose field dimensions for making resulting canvas sizes as powers of 2
-  // (Texturing requirements).
-  var FIELD_WIDTH = 100;
-  var FIELD_HEIGHT = 100;
-
   if (!window.WebGLRenderingContext) {
     throw {message: "Browser not supports WebGL"};
   }
 
   var canvas = document.getElementById(canvasId);
-  canvas.height = Math.pow(2, Math.ceil(Math.log2(FIELD_WIDTH + FIELD_HEIGHT - 1 + 9)));
+  canvas.height = Math.pow(2, Math.ceil(Math.log2(this.width + this.height - 1 + 9)));
   canvas.width = Math.pow(2, Math.ceil(Math.log2(2 * canvas.height + 2)));
 
   var gl = canvas.getContext("webgl", {antialias: false});
   if (!gl) {
     throw {message: "WebGL initialization failed"};
   }
-  this.gl = gl;
+
+  var shadersInitialized = false;
+  var sliceTextureInitialized = false;
 
   // Shader program setup.
   var self = this;
   readTextFile("shaders/default_vert_shader.glsl", function(vertShader) {
     readTextFile("shaders/default_frag_shader.glsl", function(fragShader) {
       self.shaderProgram = createShaderProgram(gl, vertShader, fragShader);
-      self.draw(gl, canvas, slice_img, FIELD_WIDTH, FIELD_HEIGHT);
+      shadersInitialized = true;
     });
   });
+
+  // Loading slice texture.
+  readBinaryFile("images/demo_pie_slice", function(bytes) {
+    self.slice_img = {
+      width: bytes[0],
+      height: bytes[1],
+      data: bytes.slice(2)
+    };
+    sliceTextureInitialized = true;
+  });
+
+  setTimeout(function() {
+    if (shadersInitialized && sliceTextureInitialized) {
+      self.draw(gl, canvas);
+    } else {
+      window.alert("Initialization timeout");
+    }
+  }, 100);
 };
 
-gameField.prototype.draw = function(gl, canvas, slice_img, FIELD_WIDTH, FIELD_HEIGHT) {
+gameField.prototype.draw = function(gl, canvas) {
   // Generate texture.
   var heights_map = new Uint8Array(canvas.width * canvas.height).fill(0);
 
-  var x = 0, xlim = 2 * (FIELD_WIDTH + FIELD_HEIGHT - 1);
-  var upper_y = FIELD_WIDTH - 1, lower_y = upper_y;
+  var x = 0, xlim = 2 * (this.width + this.height - 1);
+  var upper_y = this.width - 1, lower_y = upper_y;
   var upper_dy = -1, lower_dy = 1;
   for (var x = 1; x <= xlim; x += 2) {
     // Top.
@@ -79,9 +76,9 @@ gameField.prototype.draw = function(gl, canvas, slice_img, FIELD_WIDTH, FIELD_HE
       heights_map[y * canvas.width + x + 1] = 254;
     }
     // Slice.
-    var ratio = 1.0 / (slice_img.width - 1);
+    var ratio = 1.0 / (this.slice_img.width - 1);
     // Exclude zero height and top height.
-    for (var i = 0; i < slice_img.width - 2; ++i) {
+    for (var i = 0; i < this.slice_img.width - 2; ++i) {
       var height = 255 * (1.0 - (i + 1) * ratio);
       heights_map[(lower_y + 1 + i) * canvas.width + x] = height;
       heights_map[(lower_y + 1 + i) * canvas.width + x + 1] = height;
@@ -90,7 +87,7 @@ gameField.prototype.draw = function(gl, canvas, slice_img, FIELD_WIDTH, FIELD_HE
     if (upper_y == 0) {
       upper_dy = 1;
     }
-    if (lower_y == FIELD_WIDTH + FIELD_HEIGHT - 2) {
+    if (lower_y == this.width + this.height - 2) {
       lower_dy = -1;
     }
     upper_y += upper_dy;
@@ -98,8 +95,8 @@ gameField.prototype.draw = function(gl, canvas, slice_img, FIELD_WIDTH, FIELD_HE
   }
 
   // Borders.
-  for (var i = 0; i < slice_img.width - 3; ++i) {
-    var offset = (FIELD_WIDTH + i) * canvas.width;
+  for (var i = 0; i < this.slice_img.width - 3; ++i) {
+    var offset = (this.width + i) * canvas.width;
     heights_map[offset] = 254;
     heights_map[offset + xlim + 1] = 254;
   }
@@ -115,8 +112,8 @@ gameField.prototype.draw = function(gl, canvas, slice_img, FIELD_WIDTH, FIELD_HE
   gl.bindTexture(gl.TEXTURE_2D, slice_tex_id);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, slice_img.width, slice_img.height, 0,
-                gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array(slice_img.data));
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, this.slice_img.width, this.slice_img.height, 0,
+                gl.RGB, gl.UNSIGNED_BYTE, this.slice_img.data);
 
   gl.bindTexture(gl.TEXTURE_2D, null);
 
@@ -146,7 +143,6 @@ gameField.prototype.draw = function(gl, canvas, slice_img, FIELD_WIDTH, FIELD_HE
   // Drawing.
   gl.useProgram(this.shaderProgram);
 
-  gl.enable(gl.TEXTURE_2D);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, heights_tex_id);
   gl.activeTexture(gl.TEXTURE1);
@@ -170,6 +166,21 @@ gameField.prototype.draw = function(gl, canvas, slice_img, FIELD_WIDTH, FIELD_HE
   gl.disableVertexAttribArray(Attrib.TEX_COORDS);
   gl.disableVertexAttribArray(Attrib.POSITION);
   gl.bindTexture(gl.TEXTURE_2D, null);
-  gl.disable(gl.TEXTURE_2D);
   gl.useProgram(null);
+};
+
+function readBinaryFile(url, callback) {
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function() {
+    if (this.readyState == 4) {
+      if (this.status == 200) {
+        callback(new Uint8Array(this.response));
+      } else {
+        throw {message: "Failed reading " + url};
+      }
+    }
+  }
+  xhr.responseType = "arraybuffer";
+  xhr.open("GET", url, true);
+  xhr.send();
 };
