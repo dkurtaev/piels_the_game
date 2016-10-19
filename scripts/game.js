@@ -28,7 +28,8 @@ function game(canvasId) {
   this.character = new character();
 
   setTimeout(function() {
-    if (shadersInitialized && self.gameField.isInitialized) {
+    if (shadersInitialized && self.gameField.isInitialized &&
+        self.character.isInitialized) {
       self.initVBOs(gl);
       console.log('Game is started.');
 
