@@ -30,12 +30,37 @@ function game(canvasId) {
   setTimeout(function() {
     if (shadersInitialized && self.gameField.isInitialized) {
       self.initVBOs(gl);
+      console.log('Game is started.');
+
       self.draw(gl);
     } else {
       console.log('Initialization timeout');
       window.alert('Initialization timeout');
     }
   }, 100);
+
+  self.onkeydown = function(event) {
+    switch (event.keyCode) {
+      case 37:
+        self.character.x -= 2;
+        self.character.y += 1;
+        break;
+      case 38:
+        self.character.x -= 2;
+        self.character.y -= 1;
+        break;
+      case 39:
+        self.character.x += 2;
+        self.character.y -= 1;
+        break;
+      case 40:
+        self.character.x += 2;
+        self.character.y += 1;
+        break;
+      default: break;
+    }
+    self.draw(gl);
+  };
 };
 
 game.prototype.initVBOs = function(gl) {
@@ -67,7 +92,7 @@ game.prototype.draw = function(gl) {
     height: this.canvas.height,
     pixels: new Uint8Array(this.canvas.width * this.canvas.height * 4)
   };
-  this.character.draw(fg_tex.pixels);
+  this.character.draw(fg_tex);
 
   var fg_tex_id = genTex(gl, gl.RGBA, fg_tex);
 
@@ -99,6 +124,7 @@ game.prototype.draw = function(gl) {
 
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
+  // Disable all enabled.
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
   gl.disableVertexAttribArray(Attrib.TEX_COORDS);
   gl.disableVertexAttribArray(Attrib.POSITION);

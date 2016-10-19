@@ -23,6 +23,7 @@
   <script>
     try {
       var game = new game("glcanvas");
+      document.onkeydown = game.onkeydown;
     } catch (err) {
       window.alert(err.message);
     }
