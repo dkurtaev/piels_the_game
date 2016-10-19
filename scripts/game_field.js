@@ -80,3 +80,12 @@ gameField.prototype.initHeightsMap = function(gl, canvasWidth, canvasHeight,
     pixels: heights
   };
 };
+
+gameField.prototype.worldToIsometric = function(x, y) {
+  var originX = 1;
+  var originY = this.width - 1;
+  return {
+    x: originX + 2 * (x + y),
+    y: originY - x + y
+  }
+};

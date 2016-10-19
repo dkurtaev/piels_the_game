@@ -41,22 +41,10 @@ function game(canvasId) {
 
   self.onkeydown = function(event) {
     switch (event.keyCode) {
-      case 37:
-        self.character.x -= 2;
-        self.character.y += 1;
-        break;
-      case 38:
-        self.character.x -= 2;
-        self.character.y -= 1;
-        break;
-      case 39:
-        self.character.x += 2;
-        self.character.y -= 1;
-        break;
-      case 40:
-        self.character.x += 2;
-        self.character.y += 1;
-        break;
+      case 37: self.character.x -= 1; break;
+      case 38: self.character.y -= 1; break;
+      case 39: self.character.x += 1; break;
+      case 40: self.character.y += 1; break;
       default: break;
     }
     self.draw(gl);
@@ -92,7 +80,7 @@ game.prototype.draw = function(gl) {
     height: this.canvas.height,
     pixels: new Uint8Array(this.canvas.width * this.canvas.height * 4)
   };
-  this.character.draw(fg_tex);
+  this.character.draw(fg_tex, this.gameField);
 
   var fg_tex_id = genTex(gl, gl.RGBA, fg_tex);
 
