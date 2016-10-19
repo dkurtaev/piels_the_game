@@ -42,10 +42,10 @@ function game(canvasId) {
 
   self.onkeydown = function(event) {
     switch (event.keyCode) {
-      case 37: self.character.x -= 1; break;
-      case 38: self.character.y -= 1; break;
-      case 39: self.character.x += 1; break;
-      case 40: self.character.y += 1; break;
+      case 37: self.character.move('LEFT'); break;
+      case 38: self.character.move('UP'); break;
+      case 39: self.character.move('RIGHT'); break;
+      case 40: self.character.move('DOWN'); break;
       default: break;
     }
     self.draw(gl);
