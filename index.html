@@ -1,19 +1,29 @@
 <!DOCTYPE html>
 <html>
 
-<body>
-  Piels
-  <script>
-    var xhr = new XMLHttpRequest();
-
-    xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            console.log(this.responseText);
-        }
+<head>
+  <style>
+    canvas {
+      image-rendering: optimizeSpeed;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: -o-crisp-edges;
+      image-rendering: pixelated;
+      -ms-interpolation-mode: nearest-neighbor;
     }
+  </style>
+  <script src="scripts/game_field.js"></script>
+  <script src="scripts/shaders_factory.js"></script>
+</head>
 
-    xhr.open("GET", "README.md", true);
-    xhr.send();
+<body>
+  <canvas id="glcanvas"></canvas>
+  <script>
+    try {
+      var field = new gameField("glcanvas");
+    } catch (err) {
+      window.alert(err.message);
+    }
   </script>
 </body>
 
