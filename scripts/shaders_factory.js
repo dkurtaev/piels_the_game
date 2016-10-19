@@ -16,14 +16,14 @@ function createShaderProgram(gl, vertShaderSource, fragShaderSource) {
   gl.bindAttribLocation(shaderProgram, Attrib.TEX_COORDS, "a_tex_coords");
 
   gl.linkProgram(shaderProgram);
-  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    throw {
-      message: "Program linking error: " + gl.getProgramInfoLog(shaderProgram)
-    };
-  }
-
   gl.deleteShader(vertexShader);
   gl.deleteShader(fragmentShader);
+
+  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+    console.log("Program linking error: " +
+                gl.getProgramInfoLog(shaderProgram));
+    return null;
+  }
 
   return shaderProgram;
 };
@@ -33,9 +33,8 @@ function createShader(gl, type, src) {
   gl.shaderSource(shader, src);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    throw {
-      message: "Shader compilation error: " + gl.getShaderInfoLog(shader)
-    };
+    console.log("Shader compilation error: " + gl.getShaderInfoLog(shader));
+    return null;
   }
   return shader;
 };
